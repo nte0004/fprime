@@ -110,11 +110,22 @@ namespace Os {
         return taskHandle;
     }
 
+    void Task::~Task() {
+        if (this->m_handle) {
+            TaskHandle_t taskhandle = getTaskHandle();
+            delete taskHandle;
+        }
+        // If a registry has been registered, remove task
+        if (Task::s_taskRegistry) {
+            Task::s_taskRegistry->removeTask(this);
+        }
+    }
+
     void Task::suspend(bool onPurpose) {
         TaskHandle_t taskHandle = getTaskHandle();
         
-        vTaskSuspend(taskHandle);
         m_suspendedOnPurpose = onPurpose;
+        vTaskSuspend(taskHandle);
     }
 
     void Task::resume() {
