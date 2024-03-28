@@ -104,16 +104,13 @@ namespace Os {
     }
 
     TaskHandle_t Task::getTaskHandle() {
-        POINTER_CAST rawHandle = this->getRawHandle();
-        TaskHandle_t taskHandle = *reinterpret_cast<TaskHandle_t*>(rawHandle);
-        
-        return taskHandle;
+        FW_ASSERT(reinterpret_cast<TaskHandle_t*>(this->m_handle) != nullptr);
+        return *reinterpret_cast<TaskHandle_t*>(rawHandle);
     }
 
     void Task::~Task() {
         if (this->m_handle) {
-            TaskHandle_t taskhandle = getTaskHandle();
-            delete taskHandle;
+            delete reinterpret_cast<TaskHandle_t*>(this->m_handle);
         }
         // If a registry has been registered, remove task
         if (Task::s_taskRegistry) {
