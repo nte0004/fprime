@@ -10,46 +10,35 @@ namespace Os {
 
     void Task::validate_arguments(taskRoutine routine, Fw::StringBase& name, NATIVE_UINT_TYPE& stackSizeBytes,
                                                 NATIVE_UINT_TYPE& priority) {        
-        const NATIVE_UINT_TYPE minPriority = 0;
+        
         const NATIVE_UINT_TYPE maxPriority = FreeRTOSConfig::configMAX_PRIORITIES;
         const NATIVE_UINT_TYPE maxNameLen = FreeRTOSConfig::configMAX_TASK_NAME_LEN;
         const NATIVE_UINT_TYPE minStackSize = FreeRTOSConfig::configMINIMAL_STACK_SIZE;
         
         // Ensure routine not null.
         FW_ASSERT(routine);
- 
-        // Ensure name is not too large.
+
+        // Check if name is too long.
         const char* ogName = name.toChar();
-        const NATIVE_INT_TYPE ogNameLen = std::strlen(ogName);
+        const NATIVE_UINT_TYPE ogNameLen = std::strlen(ogName);
+ 
         if (ogNameLen > maxNameLen) {
+            //FreeRTOS will truncate the name for us to configMAX_TASK_NAME_LEN, only a warning is logged.
             Fw::Logger::logMsg("[WARNING] Large name length of %d chars being clamped to %d chars\n", ogNameLen, maxNameLen);
-            
-            // Truncate name via inserting a null byte. 
-            ogName[maxNameLen] = '\0';
         }
 
-        if (maxPriority < 0) {
-            Fw::Logger::logMsg("[WARNING] Unable to determine max priority with error %s. Discarding priority.\n",
-                                reinterpret_cast<POINTER_CAST>(strerror(errno)));
-            priority = Os::Task::TASK_DEFAULT;
-        }
-
-        if (priority != Task::TASK_DEFAULT and priority < static_cast<Task::ParamType>(minPriority)) {
-            Fw::Logger::logMsg("[WARNING] Low task priority of %d being clamped to %d\n", priority, minPriority);
-            priority = minPriority;
-        }
-
-        if (priority != Task::TASK_DEFAULT and priority > static_cast<Task::ParamType>(maxPriority)) {
+        if (priority > maxPriority) {
+            // FreeRTOS will clamp the priority at configMAX_PRIOIRITIES - 1 for us, only a warning is logged. 
             Fw::Logger::logMsg("[WARNING] High task priority of %d being clamped to %d\n", priority, maxPriority);
-            priority = maxPriority;
         }
 
-        // OSAL expects stackSize to be bytes, FreeRTOS expects words, so we convert.
+        // OSAL expects stack size in bytes, FreeRTOS expects a stack size in words, so we convert.
         const NATIVE_INT_TYPE stackSizeWords = (stackSizeBytes + (sizeof(StackType_t) - 1)) / sizeof(StackType_t);
         stackSizeBytes = stackSizeWords;
 
-        if (stackSizeWords != Task::TASK_DEFAULT and stackSizeWords < minStackSize) {
-            Fw::Logger::logMsg("[WARNING] Stack size %d (words) too small, setting to minimum of %d\n", stackSizeWords, minStackSize);
+        if (stackSizeWords < minStackSize) {
+            // minStackSize should be the amount of memory required for an idle task to run. 
+            Fw::Logger::logMsg("[WARNING] Stack size of %d (words) is too small, setting to minimum of %d\n", stackSizeWords, minStackSize);
             stackSizeBytes = minStackSize;
         }
 
