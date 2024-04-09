@@ -1,8 +1,11 @@
 #include <Os/Queue.hpp>
 #include <queue.h>
+#include <projdefs.h>
+#include <portmacro.h>
 
 namespace Os {
 
+    // Queue Initialization
     Queue::Queue() : m_handle(-1) {
     }
 
@@ -41,11 +44,9 @@ namespace Os {
         }
 
         this->m_name = name;
-
-        if (depth <= 0 || msgSize <= 0) {
-            return QueueStatus::QUEUE_UNINITIALIZED;
-        }
-
+        
+        // Note: depth and msgSize checked to be greater than zero in OS/QueueCommon.cpp
+        
         // Create the queue.
         QueueHandle_t handle = xQueueCreate(depth, msgSize);
         
@@ -70,86 +71,12 @@ namespace Os {
         vQueueDelete(handle);
     }
 
-    // Send serialized buffers
-    QueueStatus Queue::send(const Fw::SerializeBufferBase &buffer, NATIVE_INT_TYPE priority, QueueBlocking block) {
-        QueueHandle_t handle = reinterpret_cast<QueueHandle_t>(this->m_handle);
-        TickType_t ticksToWait;
-        
-        if (handle == nullptr) {
-            return QueueStatus::QUEUE_UNINITIALIZED;
-        }
-
-        
-        if (buffer.getBuffLength() == 0) {
-            return QueueStatus::QUEUE_EMPTY_BUFFER;
-        }
-
-        if (buffer.getBuffCapacity() > handle->uxItemSize) {
-            return QueueStatus::QUEUE_SIZE_MISMATCH;
-        }
-
-        // Create pointer to buffer address
-        const U8* itemToQueue = buffer.getBuffAddr();
-        
-
-        if (block == QUEUE_BLOCKING) {
-            // The writing task will wait for space to become available on a full queue until:
-            //  1. It is the highest priority task waiting OR; 
-            //  2. It is equal priority with another task and has been waiting longer.
-            ticksToWait = portMAX_DELAY;
-        }
-        else {  // block == QUEUE_NONBLOCKING
-            ticksToWait = 0;
-        }
-
-        BaseType_t qStatus = xQueueSend(handle, itemToQueue, ticksToWait);   
-        
-        if (qStatus != pdPASS) { 
-            return QueueStatus::QUEUE_FULL;
-        }
-        
-        return QueueStatus::QUEUE_OK;
-
-    }
-
-    QueueStatus Queue::receive(Fw::SerializeBufferBase &buffer, NATIVE_INT_TYPE &priority, QueueBlocking block) {
-        QueueHandle_t handle = reinterpret_cast<QueueHandle_t>(this->m_handle);
-        TickType_t ticksToWait;
-    
-        if (handle == nullptr) {
-            return QueueStatus::QUEUE_UNINITIALIZED;
-        }
-
-        if (buffer.getBuffCapacity() < handle->uxItemSize) {
-            return QueueStatus::QUEUE_SIZE_MISMATCH;
-        }
-
-        // Create pointer to buffer address 
-        U8* buffAddr = buffer.getBuffAddr();
-
-        if (block == QUEUE_BLOCKING) {
-            // Waits for data to become available on an empty queue in a similiar manner as send()
-            ticksToWait = portMAX_DELAY;
-        }
-        else {
-            ticksToWait = 0;
-        }
-
-        BaseType_t qStatus = xQueueReceive(handle, buffAddr, ticksToWait);
-        
-        if (qStatus != pdPASS) {
-            return QueueStatus::QUEUE_NO_MORE_MSGS;
-        }
-
-        return QueueStatus::QUEUE_OK;
-    }
-
     // Send raw buffers
     QueueStatus Queue::send(const U8* buffer, NATIVE_INT_TYPE size, NATIVE_INT_TYPE priority, QueueBlocking block) {
         QueueHandle_t handle = reinterpret_cast<QueueHandle_t>(this->m_handle);
         TickType_t ticksToWait;
 
-        if (handle == nullptr) {
+        if (handle == nullptr || handle == -1) {
             return QueueStatus::QUEUE_UNINITIALIZED;
         }
 
@@ -162,6 +89,10 @@ namespace Os {
             // The writing task will wait for space to become available on a full queue until:
             //  1. It is the highest priority task waiting OR; 
             //  2. It is equal priority with another task and has been waiting longer.
+            
+            // Note: If INCLUDE_vTaskSuspend in FreeRTOSConfig.h is set to '1' then specifying the block time as portMAX_DELAY
+            //  will cause the task to block indefinitely (without a timeout).
+
             ticksToWait = portMAX_DELAY;
         }
         else {  // block == QUEUE_NONBLOCKING
@@ -182,7 +113,7 @@ namespace Os {
         QueueHandle_t handle = reinterpret_cast<QueueHandle_t>(this->m_handle);
         TickType_t ticksToWait;
 
-        if (handle == nullptr) {
+        if (handle == nullptr || handle == -1) {
             return QueueStatus::QUEUE_UNINITIALIZED;
         }
 
