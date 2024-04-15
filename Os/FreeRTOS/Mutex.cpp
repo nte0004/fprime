@@ -1,33 +1,42 @@
-#include "FreeRTOS.h"
-#include "semphr.h"
+#include <FreeRTOS.h>
+#include <semphr.h>
+#include <Fw/Types/Assert.hpp>
 
-class Mutex {
-private:
-    SemaphoreHandle_t mutex; // FreeRTOS mutex variable
+namespace Os {
 
-public:
-    Mutex() {
-        //Create
-        mutex = xSemaphoreCreateMutex();
-    }
+    class Mutex {
+    private:
+        SemaphoreHandle_t handle;
 
-    ~Mutex() {
-        //Delete
-        vSemaphoreDelete(mutex);
-    }
+    public:
+        Mutex() {
+            // Create 
+            handle = xSemaphoreCreateMutex();
+            FW_ASSERT(handle != nullptr, "Failed to create mutex");
+        }
 
-    void lock() {
-        //lock
-        xSemaphoreTake(mutex, portMAX_DELAY);
-    }
+        ~Mutex() {
+            vSemaphoreDelete(handle);
+        }
 
-    void unlock() {
-        //unlock
-        xSemaphoreGive(mutex);
-    }
+        void lock() {
+            // Lock
+            if (xSemaphoreTake(handle, portMAX_DELAY) != pdTRUE) {
+                FW_ASSERT(false, "Failed to acquire mutex");
+            }
+        }
 
-    //
-    bool try_lock() {
-        return xSemaphoreTake(mutex, 0) == pdPASS;
-    }
-};
+        void unlock() {
+            // Unlock
+            if (xSemaphoreGive(handle) != pdTRUE) {
+                FW_ASSERT(false, "Failed to release mutex");
+            }
+        }
+
+        // try_lock
+        bool try_lock() {
+            return xSemaphoreTake(handle, 0) == pdTRUE;
+        }
+    };
+
+} 
