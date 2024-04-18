@@ -1,7 +1,7 @@
 ####
 # platform.cmake.template:
 #
-#   Platform file for FreeRTOS - assumes the zcu102 - may need to change hard coded values in the code if using something else.
+#   Platform file for FreeRTOS - may need to change hard coded values in the code if using something other than the Cortex A53
 #   likely, though, only need to change assumptions related to only using the Cortex A53
 ####
 
@@ -35,3 +35,5 @@ choose_fprime_implementation(Os/File Os/File/FreeRTOS)
 #         standard types from <cstdint>.
 include_directories(SYSTEM "${CMAKE_CURRENT_LIST_DIR}/types")
 include_directories(SYSTEM "$ENV{FREERTOS_INCLUDE}")
+include_directories(SYSTEM "ENV${BSP_INCLUDE_DIRECTORY}")
+
