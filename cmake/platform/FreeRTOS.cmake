@@ -35,5 +35,5 @@ choose_fprime_implementation(Os/File Os/File/FreeRTOS)
 #         standard types from <cstdint>.
 include_directories(SYSTEM "${CMAKE_CURRENT_LIST_DIR}/types")
 include_directories(SYSTEM "$ENV{FREERTOS_INCLUDE}")
-include_directories(SYSTEM "ENV${BSP_INCLUDE_DIRECTORY}")
+include_directories(SYSTEM "$ENV{BSP_INCLUDE_DIRECTORY}")
 
