@@ -67,7 +67,7 @@ namespace Os {
         TaskHandle_t* handle;
 
         // Create the task
-        BaseType_t status = xTaskCreate(routine, namePtr, arg, priority, handle);
+        BaseType_t status = xTaskCreate(routine, namePtr, stackSize, arg, priority, handle);
         if (status != pdPass) {
             return TaskStatus::TASK_ERROR_RESOURCES;
         }
